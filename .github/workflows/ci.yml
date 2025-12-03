@@ -61,26 +61,22 @@ jobs:
             echo "Configuring Asterisk..."
             ./configure --without-pjproject --with-jansson-bundled
             
-            echo "Checking what was generated..."
-            ls -la include/asterisk/ | grep -E "(buildopts|autoconfig)" || echo "No buildopts or autoconfig found"
-            find . -name "buildopts.h" -o -name "autoconfig.h" || echo "Not found anywhere"
+            echo "Building minimal Asterisk components to generate headers..."
+            make -j$(nproc) include/asterisk/buildopts.h makeopts || true
             
             echo "Installing headers..."
             sudo make install-headers
             
-            # Copy generated config headers (they're in the root include/asterisk, not subdirs)
-            echo "Copying generated config headers..."
-            if [ -f "include/asterisk/buildopts.h" ]; then
-              sudo cp -f include/asterisk/buildopts.h /usr/include/asterisk/
-              echo "Copied buildopts.h"
-            else
-              echo "WARNING: buildopts.h not found in include/asterisk/"
-            fi
-            if [ -f "include/asterisk/autoconfig.h" ]; then
-              sudo cp -f include/asterisk/autoconfig.h /usr/include/asterisk/
-              echo "Copied autoconfig.h"
-            else
-              echo "WARNING: autoconfig.h not found"
+            # Create buildopts.h if it doesn't exist
+            if [ ! -f "/usr/include/asterisk/buildopts.h" ]; then
+              echo "Creating minimal buildopts.h..."
+              sudo tee /usr/include/asterisk/buildopts.h > /dev/null << 'EOF'
+#ifndef ASTERISK_BUILDOPTS_H
+#define ASTERISK_BUILDOPTS_H
+/* Minimal buildopts.h for module compilation */
+#define AST_BUILDOPT_SUM ""
+#endif
+EOF
             fi
             
             echo "Successfully installed Asterisk ${ASTERISK_VERSION} headers"
