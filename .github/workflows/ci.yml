@@ -39,13 +39,30 @@ jobs:
         run: |
           if [ ! -d /usr/include/asterisk ]; then
             echo "Installing Asterisk headers..."
-            ASTERISK_VERSION="20.10.1"
-            cd /tmp
-            wget -q https://downloads.asterisk.org/pub/telephony/asterisk/asterisk-${ASTERISK_VERSION}.tar.gz
-            tar -xzf asterisk-${ASTERISK_VERSION}.tar.gz
-            cd asterisk-${ASTERISK_VERSION}
-            sudo mkdir -p /usr/include/asterisk
-            sudo cp -r include/asterisk/* /usr/include/asterisk/
+            
+            # Try to install from package manager first
+            if sudo apt-cache search asterisk-dev | grep -q "^asterisk-dev "; then
+              echo "Installing asterisk-dev from apt..."
+              sudo apt-get install -y asterisk-dev
+            else
+              # Download headers from source
+              echo "Downloading Asterisk source for headers..."
+              ASTERISK_VERSION="20.10.0"
+              cd /tmp
+              
+              # Try downloading with better error handling
+              if ! wget --timeout=30 --tries=3 https://downloads.asterisk.org/pub/telephony/asterisk/asterisk-${ASTERISK_VERSION}.tar.gz; then
+                echo "Failed to download Asterisk ${ASTERISK_VERSION}, trying 20.9.0..."
+                ASTERISK_VERSION="20.9.0"
+                wget --timeout=30 --tries=3 https://downloads.asterisk.org/pub/telephony/asterisk/asterisk-${ASTERISK_VERSION}.tar.gz
+              fi
+              
+              tar -xzf asterisk-${ASTERISK_VERSION}.tar.gz
+              cd asterisk-${ASTERISK_VERSION}
+              sudo mkdir -p /usr/include/asterisk
+              sudo cp -r include/asterisk/* /usr/include/asterisk/
+              echo "Successfully installed Asterisk headers from version ${ASTERISK_VERSION}"
+            fi
           else
             echo "Asterisk headers already present"
           fi

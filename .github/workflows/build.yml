@@ -42,18 +42,27 @@ jobs:
           echo "Installing Asterisk development headers..."
           
           # Try to install from package manager first
-          if sudo apt-cache search asterisk-dev | grep -q asterisk-dev; then
+          if sudo apt-cache search asterisk-dev | grep -q "^asterisk-dev "; then
+            echo "Installing asterisk-dev from apt..."
             sudo apt-get install -y asterisk-dev
           else
             # If not available, download and install headers manually
             echo "Asterisk-dev not available in package manager, installing headers manually..."
-            ASTERISK_VERSION="20.10.1"
+            ASTERISK_VERSION="20.10.0"
             cd /tmp
-            wget https://downloads.asterisk.org/pub/telephony/asterisk/asterisk-${ASTERISK_VERSION}.tar.gz
+            
+            # Try downloading with better error handling
+            if ! wget --timeout=30 --tries=3 https://downloads.asterisk.org/pub/telephony/asterisk/asterisk-${ASTERISK_VERSION}.tar.gz; then
+              echo "Failed to download Asterisk ${ASTERISK_VERSION}, trying 20.9.0..."
+              ASTERISK_VERSION="20.9.0"
+              wget --timeout=30 --tries=3 https://downloads.asterisk.org/pub/telephony/asterisk/asterisk-${ASTERISK_VERSION}.tar.gz
+            fi
+            
             tar -xzf asterisk-${ASTERISK_VERSION}.tar.gz
             cd asterisk-${ASTERISK_VERSION}
             sudo mkdir -p /usr/include/asterisk
             sudo cp -r include/asterisk/* /usr/include/asterisk/
+            echo "Successfully installed Asterisk headers from version ${ASTERISK_VERSION}"
           fi
       
       - name: Build chan_moq.so
