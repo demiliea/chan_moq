@@ -40,13 +40,19 @@ jobs:
           if [ ! -d /usr/include/asterisk ]; then
             echo "Installing Asterisk headers..."
             
-            # Try to install from package manager first
-            if sudo apt-cache search asterisk-dev | grep -q "^asterisk-dev "; then
-              echo "Installing asterisk-dev from apt..."
-              sudo apt-get install -y asterisk-dev
+            # Add Asterisk repository and install asterisk-dev
+            echo "Adding Asterisk repository..."
+            sudo apt-get update
+            
+            # Try installing asterisk-dev package
+            if sudo apt-get install -y asterisk-dev 2>/dev/null; then
+              echo "Successfully installed asterisk-dev from apt"
             else
-              # Download headers from source
-              echo "Downloading Asterisk source for headers..."
+              echo "asterisk-dev not available, downloading and building minimal headers..."
+              
+              # Install build dependencies
+              sudo apt-get install -y autoconf automake libtool pkg-config
+              
               ASTERISK_VERSION="20.10.0"
               cd /tmp
               
@@ -54,13 +60,22 @@ jobs:
               if ! wget --timeout=30 --tries=3 https://downloads.asterisk.org/pub/telephony/asterisk/asterisk-${ASTERISK_VERSION}.tar.gz; then
                 echo "Failed to download Asterisk ${ASTERISK_VERSION}, trying 20.9.0..."
                 ASTERISK_VERSION="20.9.0"
-                wget --timeout=30 --tries=3 https://downloads.asterisk.org/pub/telephony/asterisk/asterisk-${ASTERISK_VERSION}.tar.gz
+                if ! wget --timeout=30 --tries=3 https://downloads.asterisk.org/pub/telephony/asterisk/asterisk-${ASTERISK_VERSION}.tar.gz; then
+                  echo "Failed to download Asterisk ${ASTERISK_VERSION}, trying 18.20.0..."
+                  ASTERISK_VERSION="18.20.0"
+                  wget --timeout=30 --tries=3 https://downloads.asterisk.org/pub/telephony/asterisk/asterisk-${ASTERISK_VERSION}.tar.gz
+                fi
               fi
               
               tar -xzf asterisk-${ASTERISK_VERSION}.tar.gz
               cd asterisk-${ASTERISK_VERSION}
-              sudo mkdir -p /usr/include/asterisk
-              sudo cp -r include/asterisk/* /usr/include/asterisk/
+              
+              # Run configure to generate necessary headers
+              ./configure --without-pjproject --without-jansson || true
+              
+              # Install headers
+              sudo make install-headers
+              
               echo "Successfully installed Asterisk headers from version ${ASTERISK_VERSION}"
             fi
           else
