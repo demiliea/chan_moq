@@ -41,7 +41,8 @@ jobs:
             automake \
             libtool \
             pkg-config \
-            libedit-dev
+            libedit-dev \
+            uuid-dev
           
           # Install Asterisk development headers from source
           echo "Installing Asterisk development headers from source..."
