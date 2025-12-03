@@ -67,17 +67,17 @@ jobs:
             echo "Installing headers..."
             sudo make install-headers
             
-            # Create buildopts.h if it doesn't exist
-            if [ ! -f "/usr/include/asterisk/buildopts.h" ]; then
-              echo "Creating minimal buildopts.h..."
-              sudo tee /usr/include/asterisk/buildopts.h > /dev/null << 'EOF'
-#ifndef ASTERISK_BUILDOPTS_H
-#define ASTERISK_BUILDOPTS_H
-/* Minimal buildopts.h for module compilation */
-#define AST_BUILDOPT_SUM ""
-#endif
-EOF
-            fi
+          # Create buildopts.h if it doesn't exist
+          if [ ! -f "/usr/include/asterisk/buildopts.h" ]; then
+            echo "Creating minimal buildopts.h..."
+            sudo bash -c 'cat > /usr/include/asterisk/buildopts.h' << 'EOF'
+          #ifndef ASTERISK_BUILDOPTS_H
+          #define ASTERISK_BUILDOPTS_H
+          /* Minimal buildopts.h for module compilation */
+          #define AST_BUILDOPT_SUM ""
+          #endif
+          EOF
+          fi
             
             echo "Successfully installed Asterisk ${ASTERISK_VERSION} headers"
             ls -la /usr/include/asterisk/ | head -20
