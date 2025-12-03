@@ -13,40 +13,41 @@
 	<support_level>extended</support_level>
  ***/
 
-/* Include system headers first to avoid macro conflicts */
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
+/* Define module self symbol for external compilation */
+#define AST_MODULE_SELF_SYM __internal_chan_moq_self
+#define AST_MODULE "chan_moq"
+
+/* Asterisk must be included first */
+#include <asterisk.h>
+
+#include <asterisk/module.h>
+#include <asterisk/channel.h>
+#include <asterisk/config.h>
+#include <asterisk/logger.h>
+#include <asterisk/pbx.h>
+#include <asterisk/acl.h>
+#include <asterisk/callerid.h>
+#include <asterisk/frame.h>
+#include <asterisk/utils.h>
+#include <asterisk/lock.h>
+#include <asterisk/astobj2.h>
+#include <asterisk/format_cache.h>
+#include <asterisk/format_cap.h>
+#include <asterisk/format.h>
+#include <asterisk/rtp_engine.h>
+#include <asterisk/sched.h>
+#include <asterisk/io.h>
+#include <asterisk/causes.h>
+
+/* System headers after Asterisk headers */
 #include <pthread.h>
 #include <fcntl.h>
-#include <unistd.h>
 #include <errno.h>
-#include <sys/time.h>
 #include <endian.h>
 
-#include "asterisk.h"
-
+/* Third-party libraries */
 #include <json-c/json.h>
 #include <libwebsockets.h>
-
-#include "asterisk/module.h"
-#include "asterisk/channel.h"
-#include "asterisk/config.h"
-#include "asterisk/logger.h"
-#include "asterisk/pbx.h"
-#include "asterisk/acl.h"
-#include "asterisk/callerid.h"
-#include "asterisk/frame.h"
-#include "asterisk/utils.h"
-#include "asterisk/lock.h"
-#include "asterisk/astobj2.h"
-#include "asterisk/format_cache.h"
-#include "asterisk/format_cap.h"
-#include "asterisk/format.h"
-#include "asterisk/rtp_engine.h"
-#include "asterisk/sched.h"
-#include "asterisk/io.h"
 
 #define MOQ_CONFIG "moq.conf"
 #define DEFAULT_WS_PORT 8088
@@ -137,7 +138,7 @@ static struct {
 	int running;
 } moq_config;
 
-static ast_mutex_t moq_lock = AST_MUTEX_INITIALIZER;
+AST_MUTEX_DEFINE_STATIC(moq_lock);
 
 /* Forward declarations */
 static struct ast_channel *moq_request(const char *type, struct ast_format_cap *cap,
@@ -691,8 +692,8 @@ static int moq_ws_callback(struct lws *wsi, enum lws_callback_reasons reason,
 							if (cap) {
 								ast_format_cap_append(cap, ast_format_ulaw, 0);
 								
-								struct ast_channel *chan = ast_channel_alloc(1, AST_STATE_RING,
-									from, NULL, NULL, NULL, NULL, NULL, 0, "MOQ/%s", session_id);
+							struct ast_channel *chan = ast_channel_alloc(1, AST_STATE_RING,
+								from, NULL, NULL, NULL, NULL, NULL, NULL, 0, "MOQ/%s", session_id);
 								
 								if (chan) {
 									ast_channel_tech_set(chan, &moq_tech);
@@ -747,8 +748,9 @@ static struct lws_protocols protocols[] = {
 		moq_ws_callback,
 		0,
 		4096,
+		0, NULL, 0
 	},
-	{ NULL, NULL, 0, 0 }
+	{ NULL, NULL, 0, 0, 0, NULL, 0 }
 };
 
 /* WebSocket thread */
@@ -902,8 +904,8 @@ static int moq_write(struct ast_channel *ast, struct ast_frame *frame)
 	} else if (session->media_socket >= 0 && 
 		session->media_addr.ss.ss_family == AF_INET) {
 		/* Fallback to UDP */
-		sendto(session->media_socket, frame->data.ptr, frame->datalen, 0,
-			&session->media_addr.ss, sizeof(struct sockaddr_in));
+				sendto(session->media_socket, frame->data.ptr, frame->datalen, 0,
+			(const struct sockaddr *)&session->media_addr.ss, sizeof(struct sockaddr_in));
 	}
 	
 	session->last_timestamp = timestamp;
