@@ -13,19 +13,22 @@
 	<support_level>extended</support_level>
  ***/
 
-#include "asterisk.h"
-
+/* Include system headers first to avoid macro conflicts */
+#include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <pthread.h>
-#include <json-c/json.h>
-#include <libwebsockets.h>
 #include <fcntl.h>
 #include <unistd.h>
 #include <errno.h>
 #include <sys/time.h>
 #include <endian.h>
+
+#include "asterisk.h"
+
+#include <json-c/json.h>
+#include <libwebsockets.h>
 
 #include "asterisk/module.h"
 #include "asterisk/channel.h"

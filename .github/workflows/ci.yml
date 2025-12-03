@@ -38,46 +38,28 @@ jobs:
       - name: Install Asterisk headers
         run: |
           if [ ! -d /usr/include/asterisk ]; then
-            echo "Installing Asterisk headers..."
+            echo "Installing Asterisk headers from source..."
             
-            # Add Asterisk repository and install asterisk-dev
-            echo "Adding Asterisk repository..."
-            sudo apt-get update
+            # Install build dependencies
+            sudo apt-get install -y autoconf automake libtool pkg-config
             
-            # Try installing asterisk-dev package
-            if sudo apt-get install -y asterisk-dev 2>/dev/null; then
-              echo "Successfully installed asterisk-dev from apt"
-            else
-              echo "asterisk-dev not available, downloading and building minimal headers..."
-              
-              # Install build dependencies
-              sudo apt-get install -y autoconf automake libtool pkg-config
-              
-              ASTERISK_VERSION="20.10.0"
-              cd /tmp
-              
-              # Try downloading with better error handling
-              if ! wget --timeout=30 --tries=3 https://downloads.asterisk.org/pub/telephony/asterisk/asterisk-${ASTERISK_VERSION}.tar.gz; then
-                echo "Failed to download Asterisk ${ASTERISK_VERSION}, trying 20.9.0..."
-                ASTERISK_VERSION="20.9.0"
-                if ! wget --timeout=30 --tries=3 https://downloads.asterisk.org/pub/telephony/asterisk/asterisk-${ASTERISK_VERSION}.tar.gz; then
-                  echo "Failed to download Asterisk ${ASTERISK_VERSION}, trying 18.20.0..."
-                  ASTERISK_VERSION="18.20.0"
-                  wget --timeout=30 --tries=3 https://downloads.asterisk.org/pub/telephony/asterisk/asterisk-${ASTERISK_VERSION}.tar.gz
-                fi
-              fi
-              
-              tar -xzf asterisk-${ASTERISK_VERSION}.tar.gz
-              cd asterisk-${ASTERISK_VERSION}
-              
-              # Run configure to generate necessary headers
-              ./configure --without-pjproject --without-jansson || true
-              
-              # Install headers
-              sudo make install-headers
-              
-              echo "Successfully installed Asterisk headers from version ${ASTERISK_VERSION}"
-            fi
+            # Use Asterisk 18.20.0 which is known to work
+            ASTERISK_VERSION="18.20.0"
+            cd /tmp
+            
+            echo "Downloading Asterisk ${ASTERISK_VERSION}..."
+            wget --timeout=30 --tries=3 https://downloads.asterisk.org/pub/telephony/asterisk/asterisk-${ASTERISK_VERSION}.tar.gz
+            
+            tar -xzf asterisk-${ASTERISK_VERSION}.tar.gz
+            cd asterisk-${ASTERISK_VERSION}
+            
+            echo "Configuring Asterisk..."
+            ./configure --without-pjproject --without-jansson
+            
+            echo "Installing headers..."
+            sudo make install-headers
+            
+            echo "Successfully installed Asterisk ${ASTERISK_VERSION} headers"
           else
             echo "Asterisk headers already present"
           fi
