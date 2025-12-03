@@ -1,0 +1,38 @@
+; Example Asterisk dialplan configuration for chan_moq
+; Copy relevant sections to your /etc/asterisk/extensions.conf
+
+[default]
+; Handle incoming MoQ calls
+exten => _X.,1,NoOp(Incoming MoQ call from ${CALLERID(num)})
+same => n,Answer()
+same => n,Playback(hello-world)
+same => n,VoiceMail(${EXTEN})
+same => n,Hangup()
+
+[moq-test]
+; Test extension to call MoQ users
+exten => 100,1,NoOp(Calling MoQ user)
+same => n,Set(DEST=${ARG1})
+same => n,Dial(MOQ/${DEST},30)
+same => n,Hangup()
+
+; Example: Call user "alice"
+exten => 200,1,NoOp(Call alice via MoQ)
+same => n,Dial(MOQ/alice,30,m)
+same => n,Playback(vm-nobodyavail)
+same => n,Hangup()
+
+; Example: Call user "bob"
+exten => 201,1,NoOp(Call bob via MoQ)
+same => n,Dial(MOQ/bob,30,m)
+same => n,Playback(vm-nobodyavail)
+same => n,Hangup()
+
+[moq-echo]
+; Echo test for MoQ channels
+exten => echo,1,NoOp(MoQ Echo Test)
+same => n,Answer()
+same => n,Playback(demo-echotest)
+same => n,Echo()
+same => n,Playback(demo-thanks)
+same => n,Hangup()
