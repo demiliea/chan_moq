@@ -40,8 +40,13 @@ jobs:
           if [ ! -d /usr/include/asterisk ]; then
             echo "Installing Asterisk headers from source..."
             
-            # Install build dependencies
-            sudo apt-get install -y autoconf automake libtool pkg-config
+            # Install build dependencies for Asterisk
+            sudo apt-get install -y \
+              autoconf \
+              automake \
+              libtool \
+              pkg-config \
+              libedit-dev
             
             # Use Asterisk 20.17.0 (latest stable)
             ASTERISK_VERSION="20.17.0"

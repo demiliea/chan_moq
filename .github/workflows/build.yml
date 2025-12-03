@@ -40,7 +40,8 @@ jobs:
             autoconf \
             automake \
             libtool \
-            pkg-config
+            pkg-config \
+            libedit-dev
           
           # Install Asterisk development headers from source
           echo "Installing Asterisk development headers from source..."
