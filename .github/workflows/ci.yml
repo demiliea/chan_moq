@@ -61,13 +61,27 @@ jobs:
             echo "Configuring Asterisk..."
             ./configure --without-pjproject --with-jansson-bundled
             
+            echo "Checking what was generated..."
+            ls -la include/asterisk/ | grep -E "(buildopts|autoconfig)" || echo "No buildopts or autoconfig found"
+            find . -name "buildopts.h" -o -name "autoconfig.h" || echo "Not found anywhere"
+            
             echo "Installing headers..."
             sudo make install-headers
             
-            # Copy generated config headers
+            # Copy generated config headers (they're in the root include/asterisk, not subdirs)
             echo "Copying generated config headers..."
-            sudo cp -f include/asterisk/buildopts.h /usr/include/asterisk/ 2>/dev/null || true
-            sudo cp -f include/asterisk/autoconfig.h /usr/include/asterisk/ 2>/dev/null || true
+            if [ -f "include/asterisk/buildopts.h" ]; then
+              sudo cp -f include/asterisk/buildopts.h /usr/include/asterisk/
+              echo "Copied buildopts.h"
+            else
+              echo "WARNING: buildopts.h not found in include/asterisk/"
+            fi
+            if [ -f "include/asterisk/autoconfig.h" ]; then
+              sudo cp -f include/asterisk/autoconfig.h /usr/include/asterisk/
+              echo "Copied autoconfig.h"
+            else
+              echo "WARNING: autoconfig.h not found"
+            fi
             
             echo "Successfully installed Asterisk ${ASTERISK_VERSION} headers"
             ls -la /usr/include/asterisk/ | head -20
