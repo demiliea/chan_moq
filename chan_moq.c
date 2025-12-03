@@ -17,9 +17,18 @@
 #define AST_MODULE_SELF_SYM __internal_chan_moq_self
 #define AST_MODULE "chan_moq"
 
-/* Asterisk must be included first */
-#include <asterisk.h>
+/* Include third-party libraries that use pthread types BEFORE Asterisk headers */
+#include <json-c/json.h>
+#include <libwebsockets.h>
 
+/* System headers */
+#include <pthread.h>
+#include <fcntl.h>
+#include <errno.h>
+#include <endian.h>
+
+/* Asterisk headers after system and third-party libraries */
+#include <asterisk.h>
 #include <asterisk/module.h>
 #include <asterisk/channel.h>
 #include <asterisk/config.h>
@@ -38,16 +47,6 @@
 #include <asterisk/sched.h>
 #include <asterisk/io.h>
 #include <asterisk/causes.h>
-
-/* System headers after Asterisk headers */
-#include <pthread.h>
-#include <fcntl.h>
-#include <errno.h>
-#include <endian.h>
-
-/* Third-party libraries */
-#include <json-c/json.h>
-#include <libwebsockets.h>
 
 #define MOQ_CONFIG "moq.conf"
 #define DEFAULT_WS_PORT 8088
