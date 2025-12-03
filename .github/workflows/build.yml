@@ -57,7 +57,7 @@ jobs:
           cd asterisk-${ASTERISK_VERSION}
           
           echo "Configuring Asterisk..."
-          ./configure --without-pjproject --without-jansson
+          ./configure --without-pjproject --with-jansson-bundled
           
           echo "Installing headers..."
           sudo make install-headers
