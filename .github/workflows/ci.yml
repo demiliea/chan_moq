@@ -64,8 +64,15 @@ jobs:
             echo "Installing headers..."
             sudo make install-headers
             
+            # Copy generated config headers
+            echo "Copying generated config headers..."
+            sudo cp -f include/asterisk/buildopts.h /usr/include/asterisk/ 2>/dev/null || true
+            sudo cp -f include/asterisk/autoconfig.h /usr/include/asterisk/ 2>/dev/null || true
+            
             echo "Successfully installed Asterisk ${ASTERISK_VERSION} headers"
             ls -la /usr/include/asterisk/ | head -20
+            echo "Checking for buildopts.h..."
+            ls -la /usr/include/asterisk/buildopts.h || echo "buildopts.h not found"
           else
             echo "Asterisk headers already present"
           fi
