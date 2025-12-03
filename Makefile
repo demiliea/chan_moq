@@ -6,14 +6,8 @@ CFLAGS=-Wall -Wextra -fPIC -D_GNU_SOURCE -O2
 LDFLAGS=-shared
 LIBS=-lpthread -ljson-c -lwebsockets
 
-# Asterisk directories
-ASTERISK_INCLUDE=/usr/include/asterisk
+# Asterisk directories  
 ASTERISK_MODULES=/usr/lib/asterisk/modules
-
-# Check for alternative Asterisk paths
-ifeq ($(wildcard $(ASTERISK_INCLUDE)),)
-    ASTERISK_INCLUDE=/usr/local/include/asterisk
-endif
 
 # Source files
 SOURCES=chan_moq.c
@@ -27,7 +21,7 @@ check-deps:
 	@echo "Checking dependencies..."
 	@pkg-config --exists libwebsockets || echo "WARNING: libwebsockets not found. Install: sudo apt-get install libwebsockets-dev"
 	@pkg-config --exists json-c || echo "WARNING: json-c not found. Install: sudo apt-get install libjson-c-dev"
-	@test -d $(ASTERISK_INCLUDE) || echo "WARNING: Asterisk headers not found at $(ASTERISK_INCLUDE)"
+	@test -f /usr/include/asterisk.h || test -f /usr/local/include/asterisk.h || echo "WARNING: Asterisk headers not found"
 	@echo "Dependency check complete (proceeding with build)"
 
 $(TARGET): $(OBJECTS)
@@ -38,7 +32,7 @@ $(TARGET): $(OBJECTS)
 	@echo ""
 
 %.o: %.c
-	$(CC) $(CFLAGS) -I$(ASTERISK_INCLUDE) -c $< -o $@
+	$(CC) $(CFLAGS) -c $< -o $@
 
 install: $(TARGET)
 	@echo "Installing chan_moq.so..."
