@@ -4,7 +4,7 @@
 CC=gcc
 CFLAGS=-Wall -Wextra -fPIC -D_GNU_SOURCE
 LDFLAGS=-shared
-LIBS=-lpthread -ljson-c -lwebsockets
+LIBS=-lpthread
 
 # Asterisk directories
 ASTERISK_INCLUDE=/usr/include/asterisk
