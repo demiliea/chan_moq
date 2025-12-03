@@ -121,6 +121,9 @@ jobs:
           cd dist
           tar -czf ../chan_moq-ubuntu${{ matrix.ubuntu-version }}.tar.gz *
           cd ..
+          
+          # Copy .so file to root for easier artifact access
+          cp dist/chan_moq.so chan_moq-ubuntu${{ matrix.ubuntu-version }}.so
       
       - name: Upload artifact
         uses: actions/upload-artifact@v4
@@ -128,14 +131,8 @@ jobs:
           name: chan_moq-ubuntu${{ matrix.ubuntu-version }}
           path: |
             chan_moq-ubuntu${{ matrix.ubuntu-version }}.tar.gz
-            dist/chan_moq.so
-          retention-days: 30
-      
-      - name: Upload build info
-        uses: actions/upload-artifact@v4
-        with:
-          name: build-info-ubuntu${{ matrix.ubuntu-version }}
-          path: dist/BUILD_INFO.txt
+            chan_moq-ubuntu${{ matrix.ubuntu-version }}.so
+            dist/BUILD_INFO.txt
           retention-days: 30
 
   release:
@@ -199,20 +196,13 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           files: |
-            artifacts/chan_moq-ubuntu20.04/*.tar.gz
-            artifacts/chan_moq-ubuntu22.04/*.tar.gz
+            artifacts/chan_moq-ubuntu20.04/chan_moq-ubuntu20.04.tar.gz
+            artifacts/chan_moq-ubuntu22.04/chan_moq-ubuntu22.04.tar.gz
+            artifacts/chan_moq-ubuntu20.04/chan_moq-ubuntu20.04.so
+            artifacts/chan_moq-ubuntu22.04/chan_moq-ubuntu22.04.so
           body_path: RELEASE_NOTES.md
           draft: false
           prerelease: ${{ contains(github.ref, 'alpha') || contains(github.ref, 'beta') || contains(github.ref, 'rc') }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      
-      - name: Upload individual .so files to release
-        uses: softprops/action-gh-release@v1
-        with:
-          files: |
-            artifacts/chan_moq-ubuntu20.04/chan_moq.so
-            artifacts/chan_moq-ubuntu22.04/chan_moq.so
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -230,26 +220,47 @@ jobs:
       - name: Verify artifact
         run: |
           echo "Verifying downloaded artifacts..."
-          ls -lh
+          echo "=== Artifact Contents ==="
+          ls -lhR
+          echo ""
           
-          if [ -f "chan_moq.so" ]; then
-            echo "✓ chan_moq.so found"
-            file chan_moq.so
-            size=$(stat -f%z chan_moq.so 2>/dev/null || stat -c%s chan_moq.so)
-            echo "Size: $size bytes"
-            
-            if [ $size -gt 10000 ]; then
-              echo "✓ File size looks reasonable"
-            else
-              echo "✗ File seems too small"
-              exit 1
-            fi
-          else
-            echo "✗ chan_moq.so not found"
+          # Check for the .so file
+          SO_FILE="chan_moq-ubuntu22.04.so"
+          if [ ! -f "$SO_FILE" ]; then
+            echo "✗ $SO_FILE not found"
             exit 1
           fi
           
-          if [ -f "chan_moq-ubuntu22.04.tar.gz" ]; then
-            echo "✓ Tarball found"
-            tar -tzf chan_moq-ubuntu22.04.tar.gz
+          echo "✓ $SO_FILE found"
+          file "$SO_FILE"
+          size=$(stat -c%s "$SO_FILE")
+          echo "Size: $size bytes"
+          
+          if [ $size -gt 10000 ]; then
+            echo "✓ File size looks reasonable ($size bytes)"
+          else
+            echo "✗ File seems too small ($size bytes)"
+            exit 1
           fi
+          
+          # Check for tarball
+          TARBALL="chan_moq-ubuntu22.04.tar.gz"
+          if [ ! -f "$TARBALL" ]; then
+            echo "✗ $TARBALL not found"
+            exit 1
+          fi
+          
+          echo "✓ $TARBALL found"
+          echo ""
+          echo "=== Tarball Contents ==="
+          tar -tzf "$TARBALL"
+          
+          # Check for BUILD_INFO.txt
+          if [ -f "dist/BUILD_INFO.txt" ]; then
+            echo ""
+            echo "=== Build Info ==="
+            cat dist/BUILD_INFO.txt
+          fi
+          
+          echo ""
+          echo "✅ All artifact checks passed!"
