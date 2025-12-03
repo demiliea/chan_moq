@@ -1,0 +1,105 @@
+name: CI - Quick Build Check
+
+on:
+  push:
+    branches:
+      - '**'
+  pull_request:
+    branches:
+      - '**'
+
+jobs:
+  quick-build:
+    name: Quick Build Test
+    runs-on: ubuntu-22.04
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Cache dependencies
+        uses: actions/cache@v3
+        with:
+          path: |
+            /usr/include/asterisk
+            ~/.cache/apt
+          key: ${{ runner.os }}-deps-${{ hashFiles('Makefile') }}
+          restore-keys: |
+            ${{ runner.os }}-deps-
+      
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential \
+            libwebsockets-dev \
+            libjson-c-dev
+      
+      - name: Install Asterisk headers
+        run: |
+          if [ ! -d /usr/include/asterisk ]; then
+            echo "Installing Asterisk headers..."
+            ASTERISK_VERSION="20.10.1"
+            cd /tmp
+            wget -q https://downloads.asterisk.org/pub/telephony/asterisk/asterisk-${ASTERISK_VERSION}.tar.gz
+            tar -xzf asterisk-${ASTERISK_VERSION}.tar.gz
+            cd asterisk-${ASTERISK_VERSION}
+            sudo mkdir -p /usr/include/asterisk
+            sudo cp -r include/asterisk/* /usr/include/asterisk/
+          else
+            echo "Asterisk headers already present"
+          fi
+      
+      - name: Build
+        run: |
+          make clean || true
+          make
+      
+      - name: Verify build
+        run: |
+          if [ ! -f chan_moq.so ]; then
+            echo "❌ Build failed: chan_moq.so not found"
+            exit 1
+          fi
+          
+          echo "✅ Build successful"
+          ls -lh chan_moq.so
+          file chan_moq.so
+          
+          # Check shared library dependencies
+          echo "Checking dependencies..."
+          ldd chan_moq.so || true
+      
+      - name: Run static analysis
+        run: |
+          # Check for common issues
+          echo "Running basic checks..."
+          
+          # Check if the module exports the correct symbols
+          if nm chan_moq.so | grep -q "ast_module_info"; then
+            echo "✅ Module info symbol found"
+          else
+            echo "⚠️  Warning: ast_module_info symbol not found"
+          fi
+          
+          # Check file size
+          size=$(stat -c%s chan_moq.so)
+          echo "Module size: $size bytes"
+          
+          if [ $size -lt 10000 ]; then
+            echo "⚠️  Warning: Module seems unusually small"
+          fi
+      
+      - name: Summary
+        if: always()
+        run: |
+          echo "## Build Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          if [ -f chan_moq.so ]; then
+            echo "✅ Build: SUCCESS" >> $GITHUB_STEP_SUMMARY
+            echo "- File: chan_moq.so" >> $GITHUB_STEP_SUMMARY
+            echo "- Size: $(stat -c%s chan_moq.so) bytes" >> $GITHUB_STEP_SUMMARY
+            echo "- Type: $(file -b chan_moq.so)" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ Build: FAILED" >> $GITHUB_STEP_SUMMARY
+          fi

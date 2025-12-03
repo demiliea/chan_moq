@@ -2,12 +2,34 @@
 
 A channel driver for Asterisk that implements Media over QUIC (MoQ) protocol with WebSocket signaling, along with a modern web-based phone client.
 
+## 🚀 Quick Start - Pre-built Binaries
+
+**Don't want to compile?** Download pre-built `chan_moq.so` from the [Releases](../../releases) page!
+
+```bash
+# Download the latest release for your Ubuntu version
+wget https://github.com/YOUR_USERNAME/YOUR_REPO/releases/latest/download/chan_moq-ubuntu22.04.tar.gz
+
+# Extract
+tar -xzf chan_moq-ubuntu22.04.tar.gz
+
+# Install
+sudo cp chan_moq.so /usr/lib/asterisk/modules/
+sudo cp moq.conf /etc/asterisk/
+
+# Load in Asterisk
+sudo asterisk -rx "module load chan_moq.so"
+```
+
+> **Note**: Replace `YOUR_USERNAME/YOUR_REPO` with your actual GitHub repository path.
+
 ## Overview
 
 This project provides:
 - **chan_moq.so**: An Asterisk channel driver implementing MoQ for media transport
 - **WebSocket Signaling**: Simple WebSocket-based signaling for call control
 - **Web App**: Browser-based phone client with modern UI
+- **CI/CD Pipeline**: Automated builds for Ubuntu 20.04 and 22.04
 
 ## Features
 
@@ -17,6 +39,7 @@ This project provides:
 - ✅ Real-time call duration tracking
 - ✅ User registration system
 - ✅ Incoming call notifications
+- ✅ Automated CI/CD builds and releases
 - 🚧 MoQ/QUIC media transport (currently using WebRTC as foundation)
 
 ## Architecture
@@ -63,7 +86,26 @@ pip3 install websockets
 
 ## Installation
 
-### 1. Build and Install Asterisk Module
+### Option 1: Use Pre-built Binaries (Recommended)
+
+Download from the [Releases](../../releases) page:
+
+```bash
+# Download for Ubuntu 22.04
+wget https://github.com/YOUR_USERNAME/YOUR_REPO/releases/latest/download/chan_moq-ubuntu22.04.tar.gz
+
+# Or for Ubuntu 20.04
+wget https://github.com/YOUR_USERNAME/YOUR_REPO/releases/latest/download/chan_moq-ubuntu20.04.tar.gz
+
+# Extract
+tar -xzf chan_moq-ubuntu*.tar.gz
+
+# Install
+sudo cp chan_moq.so /usr/lib/asterisk/modules/
+sudo cp moq.conf /etc/asterisk/
+```
+
+### Option 2: Build from Source
 
 ```bash
 # Build the module
@@ -330,12 +372,36 @@ module load chan_moq.so
 core show channels
 ```
 
+### CI/CD Pipeline
+
+This project uses GitHub Actions for automated building and releasing:
+
+- **Continuous Integration**: Every push is automatically built and tested
+- **Automated Releases**: Tag a version (e.g., `v1.0.0`) to automatically create a release with binaries
+- **Multi-platform**: Builds for Ubuntu 20.04 and 22.04
+
+See [.github/README.md](.github/README.md) for CI/CD documentation.
+
+#### Creating a Release
+
+```bash
+# Tag a new version
+git tag -a v1.0.0 -m "Release 1.0.0"
+git push origin v1.0.0
+
+# GitHub Actions will automatically:
+# 1. Build chan_moq.so for Ubuntu 20.04 and 22.04
+# 2. Create a GitHub Release
+# 3. Upload compiled binaries
+```
+
 ### Extending Functionality
 
 To add features:
 1. Update signaling protocol in `signaling_server.py`
 2. Update channel driver in `chan_moq.c`
 3. Update web client in `webapp/app.js`
+4. Push changes - CI will automatically validate the build
 
 ## Roadmap
 
