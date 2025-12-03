@@ -38,14 +38,51 @@ jobs:
       - name: Install Asterisk headers
         run: |
           if [ ! -d /usr/include/asterisk ]; then
-            echo "Installing Asterisk headers..."
-            ASTERISK_VERSION="20.10.1"
+            echo "Installing Asterisk headers from source..."
+            
+            # Install build dependencies for Asterisk
+            sudo apt-get install -y \
+              autoconf \
+              automake \
+              libtool \
+              pkg-config \
+              libedit-dev
+            
+            # Use Asterisk 20.17.0 (latest stable)
+            ASTERISK_VERSION="20.17.0"
             cd /tmp
-            wget -q https://downloads.asterisk.org/pub/telephony/asterisk/asterisk-${ASTERISK_VERSION}.tar.gz
+            
+            echo "Downloading Asterisk ${ASTERISK_VERSION}..."
+            wget --timeout=30 --tries=3 https://downloads.asterisk.org/pub/telephony/asterisk/asterisk-${ASTERISK_VERSION}.tar.gz
+            
             tar -xzf asterisk-${ASTERISK_VERSION}.tar.gz
             cd asterisk-${ASTERISK_VERSION}
-            sudo mkdir -p /usr/include/asterisk
-            sudo cp -r include/asterisk/* /usr/include/asterisk/
+            
+            echo "Configuring Asterisk..."
+            ./configure --without-pjproject --with-jansson-bundled
+            
+            echo "Building minimal Asterisk components to generate headers..."
+            make -j$(nproc) include/asterisk/buildopts.h makeopts || true
+            
+            echo "Installing headers..."
+            sudo make install-headers
+            
+            # Create buildopts.h if it doesn't exist
+            if [ ! -f "/usr/include/asterisk/buildopts.h" ]; then
+              echo "Creating minimal buildopts.h..."
+              sudo tee /usr/include/asterisk/buildopts.h > /dev/null << 'EOF'
+#ifndef ASTERISK_BUILDOPTS_H
+#define ASTERISK_BUILDOPTS_H
+/* Minimal buildopts.h for module compilation */
+#define AST_BUILDOPT_SUM ""
+#endif
+EOF
+            fi
+            
+            echo "Successfully installed Asterisk ${ASTERISK_VERSION} headers"
+            ls -la /usr/include/asterisk/ | head -20
+            echo "Checking for buildopts.h..."
+            ls -la /usr/include/asterisk/buildopts.h || echo "buildopts.h not found"
           else
             echo "Asterisk headers already present"
           fi

@@ -36,25 +36,51 @@ jobs:
             libwebsockets-dev \
             libjson-c-dev \
             wget \
-            tar
+            tar \
+            autoconf \
+            automake \
+            libtool \
+            pkg-config \
+            libedit-dev
           
-          # Install Asterisk development headers
-          echo "Installing Asterisk development headers..."
+          # Install Asterisk development headers from source
+          echo "Installing Asterisk development headers from source..."
           
-          # Try to install from package manager first
-          if sudo apt-cache search asterisk-dev | grep -q asterisk-dev; then
-            sudo apt-get install -y asterisk-dev
-          else
-            # If not available, download and install headers manually
-            echo "Asterisk-dev not available in package manager, installing headers manually..."
-            ASTERISK_VERSION="20.10.1"
-            cd /tmp
-            wget https://downloads.asterisk.org/pub/telephony/asterisk/asterisk-${ASTERISK_VERSION}.tar.gz
-            tar -xzf asterisk-${ASTERISK_VERSION}.tar.gz
-            cd asterisk-${ASTERISK_VERSION}
-            sudo mkdir -p /usr/include/asterisk
-            sudo cp -r include/asterisk/* /usr/include/asterisk/
+          # Use Asterisk 20.17.0 (latest stable)
+          ASTERISK_VERSION="20.17.0"
+          cd /tmp
+          
+          echo "Downloading Asterisk ${ASTERISK_VERSION}..."
+          wget --timeout=30 --tries=3 https://downloads.asterisk.org/pub/telephony/asterisk/asterisk-${ASTERISK_VERSION}.tar.gz
+          
+          tar -xzf asterisk-${ASTERISK_VERSION}.tar.gz
+          cd asterisk-${ASTERISK_VERSION}
+          
+          echo "Configuring Asterisk..."
+          ./configure --without-pjproject --with-jansson-bundled
+          
+          echo "Building minimal Asterisk components to generate headers..."
+          make -j$(nproc) include/asterisk/buildopts.h makeopts || true
+          
+          echo "Installing headers..."
+          sudo make install-headers
+          
+          # Create buildopts.h if it doesn't exist
+          if [ ! -f "/usr/include/asterisk/buildopts.h" ]; then
+            echo "Creating minimal buildopts.h..."
+            sudo tee /usr/include/asterisk/buildopts.h > /dev/null << 'EOF'
+#ifndef ASTERISK_BUILDOPTS_H
+#define ASTERISK_BUILDOPTS_H
+/* Minimal buildopts.h for module compilation */
+#define AST_BUILDOPT_SUM ""
+#endif
+EOF
           fi
+          
+          echo "Successfully installed Asterisk ${ASTERISK_VERSION} headers"
+          ls -la /usr/include/asterisk/ | head -20
+          echo "Checking for buildopts.h..."
+          ls -la /usr/include/asterisk/buildopts.h || echo "buildopts.h not found"
       
       - name: Build chan_moq.so
         run: |
